@@ -1,4 +1,4 @@
-module github.com/vmware/goipmi
+module github.com/pensando/goipmi
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
