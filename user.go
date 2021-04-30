@@ -42,14 +42,76 @@ type SetUserNameResponse struct {
 	CompletionCode
 }
 
-func (r *GetUserNameRequest) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 1)
+type GetUserSummaryRequest struct {
+	ChannelNumber byte
+	UserID        byte
+}
+
+type GetUserSummaryResponse struct {
+	CompletionCode
+	MaxUsers         byte
+	CurrEnabledUsers byte
+	FixedNameUsers   byte
+	ChannelAccess    byte
+}
+
+type SetUserPassRequest struct {
+	UserID byte
+	Pass   []byte
+}
+
+type SetUserPassResponse struct {
+	CompletionCode
+}
+
+type EnableUserRequest struct {
+	UserID byte
+}
+
+type EnableUserResponse struct {
+	CompletionCode
+}
+
+type SetUserAccessRequest struct {
+	AccessOptions    byte
+	UserID           byte
+	UserLimits       byte
+	UserSessionLimit byte
+}
+
+type SetUserAccessResponse struct {
+	CompletionCode
+}
+
+func (r *SetUserPassRequest) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, 18)
 	buf[0] = r.UserID
+	buf[1] = 0x02
+	copy(buf[2:], r.Pass)
 	return buf, nil
 }
 
-func (r *GetUserNameRequest) UnmarshalBinary(buf []byte) error {
-	if len(buf) == 0 {
+func (r *SetUserPassRequest) UnmarshalBinary(buf []byte) error {
+	if len(buf) < 18 {
+		return ErrShortPacket
+	}
+	if len(buf) > 18 {
+		return ErrLongPacket
+	}
+	r.UserID = buf[0]
+	r.Pass = buf[2:]
+	return nil
+}
+
+func (r *EnableUserRequest) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, 2)
+	buf[0] = r.UserID
+	buf[1] = 0x01
+	return buf, nil
+}
+
+func (r *EnableUserRequest) UnmarshalBinary(buf []byte) error {
+	if len(buf) < 1 {
 		return ErrShortPacket
 	}
 	if len(buf) > 1 {
@@ -88,19 +150,5 @@ func (r *SetUserNameRequest) UnmarshalBinary(buf []byte) error {
 	}
 	r.UserID = buf[0]
 	r.Username = string(buf[1:])
-	return nil
-}
-
-func (r *SetUserNameResponse) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 1)
-	buf[0] = byte(r.CompletionCode)
-	return buf, nil
-}
-
-func (r *SetUserNameResponse) UnmarshalBinary(buf []byte) error {
-	if len(buf) > 1 {
-		return ErrLongPacket
-	}
-	r.CompletionCode = CompletionCode(buf[0])
 	return nil
 }
