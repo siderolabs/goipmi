@@ -28,6 +28,39 @@ import (
 	"time"
 )
 
+type LANConfigRequest struct {
+	ChannelNumber uint8
+	Param         uint8
+	Set           uint8
+	Block         uint8
+}
+
+type LANConfigResponse struct {
+	CompletionCode
+	Param uint8
+	Data  []uint8
+}
+
+// MarshalBinary implementation to handle variable length Data
+func (r *LANConfigResponse) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, 2+len(r.Data))
+	buf[0] = byte(r.CompletionCode)
+	buf[1] = r.Param
+	copy(buf[2:], r.Data)
+	return buf, nil
+}
+
+// UnmarshalBinary implementation to handle variable length Data
+func (r *LANConfigResponse) UnmarshalBinary(buf []byte) error {
+	if len(buf) < 2 {
+		return ErrShortPacket
+	}
+	r.CompletionCode = CompletionCode(buf[0])
+	r.Param = buf[1]
+	r.Data = buf[2:]
+	return nil
+}
+
 type lan struct {
 	*Connection
 	ipmiSession

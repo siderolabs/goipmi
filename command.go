@@ -21,18 +21,32 @@ type Command uint8
 
 // Command Number Assignments (table G-1)
 const (
-	CommandGetDeviceID              = Command(0x01)
-	CommandGetAuthCapabilities      = Command(0x38)
+	// Session Commands
 	CommandGetSessionChallenge      = Command(0x39)
 	CommandActivateSession          = Command(0x3a)
 	CommandSetSessionPrivilegeLevel = Command(0x3b)
 	CommandCloseSession             = Command(0x3c)
-	CommandChassisControl           = Command(0x02)
-	CommandChassisStatus            = Command(0x01)
-	CommandSetSystemBootOptions     = Command(0x08)
-	CommandGetSystemBootOptions     = Command(0x09)
-	CommandSetUserName              = Command(0x45)
-	CommandGetUserName              = Command(0x46)
+
+	// Chassis Commands
+	CommandChassisControl = Command(0x02)
+	CommandChassisStatus  = Command(0x01)
+
+	// Boot Commands
+	CommandSetSystemBootOptions = Command(0x08)
+	CommandGetSystemBootOptions = Command(0x09)
+
+	// User Commands
+	CommandSetUserAccess  = Command(0x43)
+	CommandSetUserName    = Command(0x45)
+	CommandGetUserName    = Command(0x46)
+	CommandGetUserSummary = Command(0x44)
+	CommandSetUserPass    = Command(0x47)
+	CommandEnableUser     = Command(0x47)
+
+	// Misc
+	CommandGetDeviceID         = Command(0x01)
+	CommandGetLANConfig        = Command(0x02)
+	CommandGetAuthCapabilities = Command(0x38)
 )
 
 // Request structure
