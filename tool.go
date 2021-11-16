@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -28,6 +29,8 @@ import (
 
 type tool struct {
 	*Connection
+
+	passwdFile *os.File
 }
 
 func newToolTransport(c *Connection) transport {
@@ -35,11 +38,31 @@ func newToolTransport(c *Connection) transport {
 }
 
 func (t *tool) open() error {
+	var err error
+
+	// create a temporary file to store the password
+	t.passwdFile, err = os.CreateTemp("", "goipmi")
+	if err != nil {
+		return err
+	}
+
+	if err = os.Remove(t.passwdFile.Name()); err != nil {
+		t.passwdFile.Close() //nolint:errcheck
+
+		return err
+	}
+
+	if _, err = t.passwdFile.WriteString(t.Password); err != nil {
+		t.passwdFile.Close() //nolint:errcheck
+
+		return err
+	}
+
 	return nil
 }
 
 func (t *tool) close() error {
-	return nil
+	return t.passwdFile.Close()
 }
 
 func (t *tool) send(req *Request, res Response) error {
@@ -72,7 +95,7 @@ func (t *tool) options() []string {
 	options := []string{
 		"-H", t.Hostname,
 		"-U", t.Username,
-		"-P", t.Password,
+		"-f", "/dev/fd/3",
 		"-I", intf,
 	}
 
@@ -91,8 +114,12 @@ func (t *tool) cmd(args ...string) *exec.Cmd {
 		path = "ipmitool"
 	}
 
-	return exec.Command(path, opts...)
+	cmd := exec.Command(path, opts...)
+	cmd.ExtraFiles = []*os.File{
+		t.passwdFile,
+	}
 
+	return cmd
 }
 
 func (t *tool) run(args ...string) (string, error) {
@@ -101,6 +128,11 @@ func (t *tool) run(args ...string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+	// rewind the password file
+	if _, err := t.passwdFile.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
 
 	err := cmd.Run()
 	if err != nil {

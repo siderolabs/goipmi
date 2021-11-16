@@ -39,7 +39,7 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "",
 			},
-			[]string{"-H", "h", "-U", "u", "-P", "p", "-I", "lanplus"},
+			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lanplus"},
 		},
 		{
 			"should append port",
@@ -51,7 +51,7 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "",
 			},
-			[]string{"-H", "h", "-U", "u", "-P", "p", "-I", "lanplus", "-p", "1623"},
+			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lanplus", "-p", "1623"},
 		},
 		{
 			"should override default interface",
@@ -63,7 +63,7 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "lan",
 			},
-			[]string{"-H", "h", "-U", "u", "-P", "p", "-I", "lan"},
+			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lan"},
 		},
 	}
 
@@ -185,4 +185,57 @@ func TestTool(t *testing.T) {
 	err = tr.close()
 	assert.NoError(t, err)
 	s.Stop()
+}
+
+func TestLanPlus(t *testing.T) {
+	// for this test to run successfully, ipmi_sim should be launched with the following config:
+	//
+	// $ git clone git@github.com:wrouesnel/openipmi.git
+	// $ cd openipmi/lanserv/
+	// $ mkdir my_statedir
+	// $ ipmi_sim -c lan.conf -f ipmisim1.emu -s my_statedi
+
+	if testing.Short() {
+		t.Skip("skipping tool tests")
+	}
+
+	c := &Connection{
+		Hostname:  "127.0.0.1",
+		Port:      9001,
+		Username:  "ipmiusr",
+		Password:  "test",
+		Interface: "lanplus",
+		Path:      "ipmitool",
+	}
+
+	tr, err := newTransport(c)
+	assert.NoError(t, err)
+
+	err = tr.open()
+	assert.NoError(t, err)
+
+	// Device ID
+	req := &Request{
+		NetworkFunctionApp,
+		CommandGetDeviceID,
+		&DeviceIDRequest{},
+	}
+	dir := &DeviceIDResponse{}
+	err = tr.send(req, dir)
+	assert.NoError(t, err)
+	assert.Equal(t, uint8(0x2), dir.IPMIVersion)
+
+	// Chassis Status
+	req = &Request{
+		NetworkFunctionChassis,
+		CommandChassisStatus,
+		&DeviceIDRequest{},
+	}
+	csr := &ChassisStatusResponse{}
+	err = tr.send(req, csr)
+	assert.NoError(t, err)
+	assert.Equal(t, uint8(0), csr.PowerState)
+
+	err = tr.close()
+	assert.NoError(t, err)
 }
