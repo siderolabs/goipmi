@@ -43,19 +43,19 @@ func (t *tool) open() error {
 	// create a temporary file to store the password
 	t.passwdFile, err = os.CreateTemp("", "goipmi")
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating temporary file: %w", err)
 	}
 
 	if err = os.Remove(t.passwdFile.Name()); err != nil {
 		t.passwdFile.Close() //nolint:errcheck
 
-		return err
+		return fmt.Errorf("error removing temporary file: %w", err)
 	}
 
 	if _, err = t.passwdFile.WriteString(t.Password); err != nil {
 		t.passwdFile.Close() //nolint:errcheck
 
-		return err
+		return fmt.Errorf("error writing password: %w", err)
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (t *tool) options() []string {
 	options := []string{
 		"-H", t.Hostname,
 		"-U", t.Username,
-		"-f", "/dev/fd/3",
+		"-f", "/proc/self/fd/3",
 		"-I", intf,
 	}
 
@@ -131,7 +131,7 @@ func (t *tool) run(args ...string) (string, error) {
 
 	// rewind the password file
 	if _, err := t.passwdFile.Seek(0, io.SeekStart); err != nil {
-		return "", err
+		return "", fmt.Errorf("error seeking the password file: %w", err)
 	}
 
 	err := cmd.Run()
