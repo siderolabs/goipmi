@@ -39,7 +39,7 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "",
 			},
-			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lanplus"},
+			[]string{"-H", "h", "-U", "u", "-I", "lanplus", "-E"},
 		},
 		{
 			"should append port",
@@ -51,7 +51,7 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "",
 			},
-			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lanplus", "-p", "1623"},
+			[]string{"-H", "h", "-U", "u", "-I", "lanplus", "-E", "-p", "1623"},
 		},
 		{
 			"should override default interface",
@@ -63,13 +63,18 @@ func TestOptions(t *testing.T) {
 				Password:  "p",
 				Interface: "lan",
 			},
-			[]string{"-H", "h", "-U", "u", "-f", "/dev/fd/3", "-I", "lan"},
+			[]string{"-H", "h", "-U", "u", "-I", "lan", "-E"},
 		},
 	}
 
 	for _, test := range tests {
-		result := newToolTransport(test.conn).(*tool).options()
+		transport := newToolTransport(test.conn).(*tool)
+		assert.NoError(t, transport.open())
+
+		result := transport.options()
 		assert.Equal(t, test.expect, result, test.should)
+
+		assert.NoError(t, transport.close())
 	}
 }
 
